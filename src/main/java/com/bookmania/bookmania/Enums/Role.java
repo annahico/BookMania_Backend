@@ -1,5 +1,6 @@
 package com.bookmania.bookmania.Enums;
 
-public class Role {
-    
+public enum Role {
+    ADMIN,
+    USER
 }
