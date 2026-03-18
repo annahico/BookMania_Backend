@@ -36,7 +36,7 @@ public class BookController {
     }
 
     @PutMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookResponse> update(@PathVariable Long id,
                                                @Valid @RequestBody BookRequest request) {
         return ResponseEntity.ok(bookService.update(id, request));
