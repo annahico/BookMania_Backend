@@ -5,6 +5,7 @@ import com.bookmania.bookmania.Dtos.BookResponse;
 import com.bookmania.bookmania.Services.BookService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,8 +21,13 @@ public class BookController {
     private final BookService bookService;
 
     @GetMapping
-    public ResponseEntity<List<BookResponse>> getAll() {
-        return ResponseEntity.ok(bookService.getAll());
+    public ResponseEntity<Page<BookResponse>> getAll(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(bookService.getFiltered(title, author, categoryId, page, size));
     }
 
     @GetMapping("/{id}")
@@ -38,7 +44,7 @@ public class BookController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookResponse> update(@PathVariable Long id,
-                                               @Valid @RequestBody BookRequest request) {
+            @Valid @RequestBody BookRequest request) {
         return ResponseEntity.ok(bookService.update(id, request));
     }
 

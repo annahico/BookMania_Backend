@@ -7,6 +7,10 @@ import com.bookmania.bookmania.Entity.Category;
 import com.bookmania.bookmania.Repository.BookRepository;
 import com.bookmania.bookmania.Repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +28,13 @@ public class BookService {
         return bookRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public Page<BookResponse> getFiltered(String title, String author, Long categoryId,
+            int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("title").ascending());
+        return bookRepository.findWithFilters(title, author, categoryId, pageable)
+                .map(this::toResponse);
     }
 
     public BookResponse getById(Long id) {
