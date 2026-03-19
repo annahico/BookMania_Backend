@@ -32,4 +32,9 @@ public class LoanController {
     public ResponseEntity<LoanResponse> extend(@PathVariable Long id) {
         return ResponseEntity.ok(loanService.extend(id));
     }
+
+    @PutMapping("/{id}/return")                          // BOOK-23
+    public ResponseEntity<LoanResponse> returnBook(@PathVariable Long id) {
+        return ResponseEntity.ok(loanService.returnBook(id));
+    }
 }
