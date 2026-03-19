@@ -26,8 +26,8 @@ public class LoanService {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final FineService fineService;
+    private final ReservationService reservationService;
 
-    // ── BOOK-20: emitir préstamo ────────────────────────────────────────────
     public LoanResponse create(LoanRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
@@ -41,12 +41,15 @@ public class LoanService {
                 .orElseThrow(() -> new RuntimeException("Libro no encontrado"));
 
         if (book.getAvailableCopies() <= 0) {
-            throw new RuntimeException("No hay copias disponibles de este libro");
+            throw new RuntimeException("No hay copias disponibles. Puedes hacer una reserva.");
         }
 
         if (loanRepository.existsByUserIdAndBookIdAndStatus(user.getId(), book.getId(), LoanStatus.ISSUED)) {
             throw new RuntimeException("Ya tienes este libro en préstamo");
         }
+
+        // Si tenía reserva activa para este libro, marcarla como cumplida
+        reservationService.fulfillReservation(user.getId(), book.getId());
 
         Loan loan = new Loan();
         loan.setUser(user);
@@ -58,7 +61,6 @@ public class LoanService {
         return toResponse(loanRepository.save(loan));
     }
 
-    // ── BOOK-21: historial préstamos ────────────────────────────────────────
     public List<LoanResponse> getMyLoans() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
@@ -68,7 +70,6 @@ public class LoanService {
                 .toList();
     }
 
-    // ── BOOK-22: prorrogar préstamo ─────────────────────────────────────────
     public LoanResponse extend(Long loanId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
@@ -103,7 +104,6 @@ public class LoanService {
         return toResponse(loanRepository.save(loan));
     }
 
-    // ── BOOK-23: devolver libro ─────────────────────────────────────────────
     public LoanResponse returnBook(Long loanId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
@@ -120,7 +120,6 @@ public class LoanService {
             throw new RuntimeException("Este préstamo ya fue devuelto");
         }
 
-        // Si está vencido, generar penalización de tiempo (no bloquea la devolución)
         if (LocalDate.now().isAfter(loan.getDueDate())) {
             loan.setStatus(LoanStatus.OVERDUE);
             loanRepository.save(loan);
@@ -134,10 +133,12 @@ public class LoanService {
         book.setAvailableCopies(book.getAvailableCopies() + 1);
         bookRepository.save(book);
 
+        // Notificar al siguiente en la cola de reservas
+        reservationService.notifyNextInQueue(book.getId());
+
         return toResponse(loanRepository.save(loan));
     }
 
-    // ── BOOK-24: usado por el Scheduler ────────────────────────────────────
     public void markOverdueLoans() {
         List<Loan> active = loanRepository.findByStatus(LoanStatus.ISSUED);
         for (Loan loan : active) {
