@@ -4,6 +4,7 @@ import com.bookmania.bookmania.Dtos.FineResponse;
 import com.bookmania.bookmania.Entity.Fine;
 import com.bookmania.bookmania.Entity.Loan;
 import com.bookmania.bookmania.Entity.User;
+import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.FineRepository;
 import com.bookmania.bookmania.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,15 +28,19 @@ public class FineService {
     private final UserRepository userRepository;
 
     /**
-     * Genera la penalización cuando un préstamo se devuelve vencido.
-     * Llamado desde LoanService.returnBook() y desde LoanScheduler.
+     * Genera la penalización cuando un préstamo se devuelve vencido. Llamado
+     * desde LoanService.returnBook() y desde LoanScheduler.
      */
     public void generateFine(Loan loan) {
         // No generar multa duplicada
-        if (fineRepository.existsByLoanId(loan.getId())) return;
+        if (fineRepository.existsByLoanId(loan.getId())) {
+            return;
+        }
 
         long daysOverdue = ChronoUnit.DAYS.between(loan.getDueDate(), LocalDate.now());
-        if (daysOverdue <= 0) return;
+        if (daysOverdue <= 0) {
+            return;
+        }
 
         int penaltyDays = BASE_PENALTY_DAYS + (int) (daysOverdue * EXTRA_DAYS_PER_OVERDUE_DAY);
 
@@ -68,7 +73,7 @@ public class FineService {
     public List<FineResponse> getMyFines() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         return fineRepository.findByUserId(user.getId()).stream()
                 .map(this::toResponse)
