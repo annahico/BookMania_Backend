@@ -9,6 +9,5 @@ import java.util.Optional;
 public interface FineRepository extends JpaRepository<Fine, Long> {
     Optional<Fine> findByLoanId(Long loanId);
     List<Fine> findByUserId(Long userId);
-    boolean existsByLoanIdAndPaidFalse(Long loanId);
-    boolean existsByUserIdAndPaidFalse(Long userId);
+    boolean existsByLoanId(Long loanId);
 }

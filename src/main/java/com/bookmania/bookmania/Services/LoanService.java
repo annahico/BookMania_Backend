@@ -3,12 +3,10 @@ package com.bookmania.bookmania.Services;
 import com.bookmania.bookmania.Dtos.LoanRequest;
 import com.bookmania.bookmania.Dtos.LoanResponse;
 import com.bookmania.bookmania.Entity.Book;
-import com.bookmania.bookmania.Entity.Fine;
 import com.bookmania.bookmania.Entity.Loan;
 import com.bookmania.bookmania.Entity.User;
 import com.bookmania.bookmania.Enums.LoanStatus;
 import com.bookmania.bookmania.Repository.BookRepository;
-import com.bookmania.bookmania.Repository.FineRepository;
 import com.bookmania.bookmania.Repository.LoanRepository;
 import com.bookmania.bookmania.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -27,12 +22,10 @@ import java.util.List;
 @Transactional
 public class LoanService {
 
-    private static final BigDecimal DAILY_FINE_RATE = new BigDecimal("1.00");
-
     private final LoanRepository loanRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
-    private final FineRepository fineRepository;
+    private final FineService fineService;
 
     // ── BOOK-20: emitir préstamo ────────────────────────────────────────────
     public LoanResponse create(LoanRequest request) {
@@ -93,23 +86,17 @@ public class LoanService {
         }
 
         if (loan.getStatus() == LoanStatus.OVERDUE) {
-            throw new RuntimeException("El préstamo está vencido. Paga la multa antes de prorrogar.");
+            throw new RuntimeException("El préstamo está vencido. No puedes prorrogar.");
         }
 
         if (loan.getExtensionsUsed() >= 3) {
             throw new RuntimeException("Has alcanzado el máximo de prórrogas permitidas (3)");
         }
 
-        // BOOK-27: bloquear si tiene multa pendiente
-        if (fineRepository.existsByUserIdAndPaidFalse(user.getId())) {
-            throw new RuntimeException("Tienes una multa pendiente. Págala antes de prorrogar.");
-        }
-
         if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
             throw new RuntimeException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
         }
 
-        // Las prórrogas se calculan desde la dueDate actual (no desde hoy)
         loan.setDueDate(loan.getDueDate().plusDays(10));
         loan.setExtensionsUsed(loan.getExtensionsUsed() + 1);
 
@@ -133,32 +120,13 @@ public class LoanService {
             throw new RuntimeException("Este préstamo ya fue devuelto");
         }
 
-        // Si está vencido, generar multa y bloquear hasta que se pague
+        // Si está vencido, generar penalización de tiempo (no bloquea la devolución)
         if (LocalDate.now().isAfter(loan.getDueDate())) {
             loan.setStatus(LoanStatus.OVERDUE);
             loanRepository.save(loan);
-
-            // Crear multa si no existe ya
-            boolean fineExists = fineRepository.existsByLoanIdAndPaidFalse(loan.getId());
-            if (!fineExists) {
-                long daysOverdue = ChronoUnit.DAYS.between(loan.getDueDate(), LocalDate.now());
-                BigDecimal amount = DAILY_FINE_RATE.multiply(BigDecimal.valueOf(daysOverdue));
-
-                Fine fine = Fine.builder()
-                        .loan(loan)
-                        .user(user)
-                        .amount(amount)
-                        .paid(false)
-                        .build();
-                fineRepository.save(fine);
-            }
-
-            throw new RuntimeException(
-                "El préstamo está vencido. Tienes una multa pendiente. Págala para poder devolver el libro."
-            );
+            fineService.generateFine(loan);
         }
 
-        // Devolución normal
         loan.setStatus(LoanStatus.RETURNED);
         loan.setReturnDate(LocalDate.now());
 
@@ -169,7 +137,7 @@ public class LoanService {
         return toResponse(loanRepository.save(loan));
     }
 
-    // ── BOOK-24: usado por el Scheduler (se llama desde LoanScheduler) ──────
+    // ── BOOK-24: usado por el Scheduler ────────────────────────────────────
     public void markOverdueLoans() {
         List<Loan> active = loanRepository.findByStatus(LoanStatus.ISSUED);
         for (Loan loan : active) {
