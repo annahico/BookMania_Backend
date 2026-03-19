@@ -6,6 +6,9 @@ import com.bookmania.bookmania.Entity.Book;
 import com.bookmania.bookmania.Entity.Loan;
 import com.bookmania.bookmania.Entity.User;
 import com.bookmania.bookmania.Enums.LoanStatus;
+import com.bookmania.bookmania.Exception.BusinessException;
+import com.bookmania.bookmania.Exception.ForbiddenException;
+import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.BookRepository;
 import com.bookmania.bookmania.Repository.LoanRepository;
 import com.bookmania.bookmania.Repository.UserRepository;
@@ -31,24 +34,23 @@ public class LoanService {
     public LoanResponse create(LoanRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
-            throw new RuntimeException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
+            throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
         }
 
         Book book = bookRepository.findById(request.getBookId())
-                .orElseThrow(() -> new RuntimeException("Libro no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
 
         if (book.getAvailableCopies() <= 0) {
-            throw new RuntimeException("No hay copias disponibles. Puedes hacer una reserva.");
+            throw new BusinessException("No hay copias disponibles. Puedes hacer una reserva.");
         }
 
         if (loanRepository.existsByUserIdAndBookIdAndStatus(user.getId(), book.getId(), LoanStatus.ISSUED)) {
-            throw new RuntimeException("Ya tienes este libro en préstamo");
+            throw new BusinessException("Ya tienes este libro en préstamo");
         }
 
-        // Si tenía reserva activa para este libro, marcarla como cumplida
         reservationService.fulfillReservation(user.getId(), book.getId());
 
         Loan loan = new Loan();
@@ -64,7 +66,7 @@ public class LoanService {
     public List<LoanResponse> getMyLoans() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         return loanRepository.findByUserId(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
@@ -73,29 +75,29 @@ public class LoanService {
     public LoanResponse extend(Long loanId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new RuntimeException("Préstamo no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Préstamo no encontrado"));
 
         if (!loan.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("No tienes permiso para prorrogar este préstamo");
+            throw new ForbiddenException("No tienes permiso para prorrogar este préstamo");
         }
 
         if (loan.getStatus() == LoanStatus.RETURNED) {
-            throw new RuntimeException("No se puede prorrogar un préstamo ya devuelto");
+            throw new BusinessException("No se puede prorrogar un préstamo ya devuelto");
         }
 
         if (loan.getStatus() == LoanStatus.OVERDUE) {
-            throw new RuntimeException("El préstamo está vencido. No puedes prorrogar.");
+            throw new BusinessException("El préstamo está vencido. No puedes prorrogar.");
         }
 
         if (loan.getExtensionsUsed() >= 3) {
-            throw new RuntimeException("Has alcanzado el máximo de prórrogas permitidas (3)");
+            throw new BusinessException("Has alcanzado el máximo de prórrogas permitidas (3)");
         }
 
         if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
-            throw new RuntimeException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
+            throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
         }
 
         loan.setDueDate(loan.getDueDate().plusDays(10));
@@ -107,17 +109,17 @@ public class LoanService {
     public LoanResponse returnBook(Long loanId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new RuntimeException("Préstamo no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Préstamo no encontrado"));
 
         if (!loan.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("No tienes permiso para devolver este préstamo");
+            throw new ForbiddenException("No tienes permiso para devolver este préstamo");
         }
 
         if (loan.getStatus() == LoanStatus.RETURNED) {
-            throw new RuntimeException("Este préstamo ya fue devuelto");
+            throw new BusinessException("Este préstamo ya fue devuelto");
         }
 
         if (LocalDate.now().isAfter(loan.getDueDate())) {
@@ -133,7 +135,6 @@ public class LoanService {
         book.setAvailableCopies(book.getAvailableCopies() + 1);
         bookRepository.save(book);
 
-        // Notificar al siguiente en la cola de reservas
         reservationService.notifyNextInQueue(book.getId());
 
         return toResponse(loanRepository.save(loan));

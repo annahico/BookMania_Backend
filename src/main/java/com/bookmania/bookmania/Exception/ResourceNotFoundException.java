@@ -1,0 +1,8 @@
+// ResourceNotFoundException.java — 404
+package com.bookmania.bookmania.Exception;
+
+public class ResourceNotFoundException extends RuntimeException {
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+}
