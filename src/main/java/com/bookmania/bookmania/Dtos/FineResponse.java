@@ -15,6 +15,6 @@ public class FineResponse {
     private Integer daysOverdue;
     private Integer penaltyDays;
     private LocalDate penaltyUntil;
-    private Long penaltyDaysRemaining; // días que quedan hasta que se levante el bloqueo
+    private Long penaltyDaysRemaining; 
     private LocalDateTime createdAt;
 }

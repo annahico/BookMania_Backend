@@ -27,14 +27,11 @@ public class Reservation {
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
-    // posición en la cola: 1, 2 o 3
     @Column(nullable = false)
     private Integer queuePosition;
 
     @Column(nullable = false)
     private LocalDate reservationDate;
-
-    // fecha límite para recoger el libro cuando esté disponible
     @Column
     private LocalDate expiryDate;
 

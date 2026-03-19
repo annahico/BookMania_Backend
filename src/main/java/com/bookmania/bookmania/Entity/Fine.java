@@ -26,15 +26,12 @@ public class Fine {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // días de retraso del préstamo
     @Column(nullable = false)
     private Integer daysOverdue;
 
-    // días de penalización calculados: 7 + (daysOverdue * 2)
     @Column(nullable = false)
     private Integer penaltyDays;
 
-    // fecha hasta la que el usuario está bloqueado para reservar
     @Column(nullable = false)
     private LocalDate penaltyUntil;
 

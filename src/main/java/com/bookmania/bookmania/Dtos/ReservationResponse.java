@@ -1,4 +1,3 @@
-// ReservationResponse.java
 package com.bookmania.bookmania.Dtos;
 
 import com.bookmania.bookmania.Enums.ReservationStatus;

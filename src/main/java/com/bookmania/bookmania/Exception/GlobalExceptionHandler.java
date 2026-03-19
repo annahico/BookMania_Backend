@@ -16,37 +16,31 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 404 — recurso no encontrado
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    // 400 — regla de negocio violada
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String, Object>> handleBusiness(BusinessException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    // 403 — sin permiso
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<Map<String, Object>> handleForbidden(ForbiddenException ex) {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
-    // 403 — Spring Security
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
         return buildResponse(HttpStatus.FORBIDDEN, "No tienes permiso para realizar esta acción");
     }
 
-    // 404 — Spring Security
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleUsernameNotFound(UsernameNotFoundException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    // 400 — validación de DTOs (@NotNull, @Valid...)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -61,7 +55,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    // 500 — cualquier otro error inesperado
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         ex.printStackTrace();

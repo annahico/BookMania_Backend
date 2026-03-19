@@ -27,12 +27,7 @@ public class FineService {
     private final FineRepository fineRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Genera la penalización cuando un préstamo se devuelve vencido. Llamado
-     * desde LoanService.returnBook() y desde LoanScheduler.
-     */
     public void generateFine(Loan loan) {
-        // No generar multa duplicada
         if (fineRepository.existsByLoanId(loan.getId())) {
             return;
         }
@@ -44,7 +39,6 @@ public class FineService {
 
         int penaltyDays = BASE_PENALTY_DAYS + (int) (daysOverdue * EXTRA_DAYS_PER_OVERDUE_DAY);
 
-        // Acumular sobre penaltyUntil existente si ya tiene bloqueo activo
         User user = loan.getUser();
         LocalDate baseDate = (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now()))
                 ? user.getPenaltyUntil()
@@ -52,11 +46,9 @@ public class FineService {
 
         LocalDate penaltyUntil = baseDate.plusDays(penaltyDays);
 
-        // Actualizar el usuario
         user.setPenaltyUntil(penaltyUntil);
         userRepository.save(user);
 
-        // Registrar la multa
         Fine fine = Fine.builder()
                 .loan(loan)
                 .user(user)
@@ -67,9 +59,6 @@ public class FineService {
         fineRepository.save(fine);
     }
 
-    /**
-     * Mis multas — historial de penalizaciones del usuario autenticado.
-     */
     public List<FineResponse> getMyFines() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
