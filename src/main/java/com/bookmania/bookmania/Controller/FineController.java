@@ -5,7 +5,9 @@ import com.bookmania.bookmania.Services.FineService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,5 +30,12 @@ public class FineController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<FineResponse>> getAllFines() {
         return ResponseEntity.ok(fineService.getAllFines());
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        fineService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
