@@ -10,16 +10,15 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface BookRepository extends JpaRepository<Book, Long> {
-
     boolean existsByIsbn(String isbn);
-
     Optional<Book> findByIsbn(String isbn);
 
     @Query("""
-        SELECT b FROM Book b
+        SELECT DISTINCT b FROM Book b
+        LEFT JOIN b.categories c
         WHERE (:title IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', CAST(:title AS string), '%')))
         AND (:author IS NULL OR LOWER(b.author) LIKE LOWER(CONCAT('%', CAST(:author AS string), '%')))
-        AND (:categoryId IS NULL OR b.category.id = :categoryId)
+        AND (:categoryId IS NULL OR c.id = :categoryId)
         """)
     Page<Book> findWithFilters(
             @Param("title") String title,

@@ -3,6 +3,8 @@ package com.bookmania.bookmania.Dtos;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.Set;
+
 @Getter
 @AllArgsConstructor
 public class BookResponse {
@@ -14,5 +16,5 @@ public class BookResponse {
     private String coverUrl;
     private Integer totalCopies;
     private Integer availableCopies;
-    private String categoryName;
+    private Set<String> categories;
 }
