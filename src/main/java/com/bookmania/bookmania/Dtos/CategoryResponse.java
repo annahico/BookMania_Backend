@@ -1,4 +1,3 @@
-// CategoryResponse.java
 package com.bookmania.bookmania.Dtos;
 
 import lombok.AllArgsConstructor;
