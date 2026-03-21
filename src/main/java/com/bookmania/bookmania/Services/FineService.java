@@ -69,6 +69,12 @@ public class FineService {
                 .toList();
     }
 
+    public List<FineResponse> getAllFines() {
+        return fineRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     private FineResponse toResponse(Fine fine) {
         long daysRemaining = 0;
         if (fine.getPenaltyUntil().isAfter(LocalDate.now())) {

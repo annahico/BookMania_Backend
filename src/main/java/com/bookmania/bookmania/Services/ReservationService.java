@@ -39,7 +39,7 @@ public class ReservationService {
 
         if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
             throw new BusinessException(
-                "Tienes una penalización activa hasta " + user.getPenaltyUntil() + ". No puedes hacer reservas."
+                    "Tienes una penalización activa hasta " + user.getPenaltyUntil() + ". No puedes hacer reservas."
             );
         }
 
@@ -58,7 +58,7 @@ public class ReservationService {
         long queueSize = reservationRepository.countByBookIdAndStatus(book.getId(), ReservationStatus.PENDING);
         if (queueSize >= MAX_QUEUE_SIZE) {
             throw new BusinessException(
-                "La cola de espera está llena (máximo " + MAX_QUEUE_SIZE + " personas)."
+                    "La cola de espera está llena (máximo " + MAX_QUEUE_SIZE + " personas)."
             );
         }
 
@@ -110,7 +110,9 @@ public class ReservationService {
         List<Reservation> queue = reservationRepository
                 .findByBookIdAndStatusOrderByQueuePositionAsc(bookId, ReservationStatus.PENDING);
 
-        if (queue.isEmpty()) return;
+        if (queue.isEmpty()) {
+            return;
+        }
 
         Reservation first = queue.get(0);
         first.setExpiryDate(LocalDate.now().plusDays(PICKUP_DAYS));
@@ -124,6 +126,12 @@ public class ReservationService {
                     r.setStatus(ReservationStatus.FULFILLED);
                     reservationRepository.save(r);
                 });
+    }
+
+    public List<ReservationResponse> getAllReservations() {
+        return reservationRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private void reorderQueue(Long bookId, int cancelledPosition) {

@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -36,5 +38,11 @@ public class LoanController {
     @PutMapping("/{id}/return")                          // BOOK-23
     public ResponseEntity<LoanResponse> returnBook(@PathVariable Long id) {
         return ResponseEntity.ok(loanService.returnBook(id));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<LoanResponse>> getAllLoans() {
+        return ResponseEntity.ok(loanService.getAllLoans());
     }
 }
