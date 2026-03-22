@@ -353,7 +353,7 @@ headers: {
 
 ---
 
-## Autor
+## Autora
 
 **Anna Costa**
 [LinkedIn](https://www.linkedin.com/in/annahico/)

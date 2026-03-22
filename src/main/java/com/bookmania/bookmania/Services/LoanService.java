@@ -150,6 +150,12 @@ public class LoanService {
         }
     }
 
+    public List<LoanResponse> getAllLoans() {
+        return loanRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     private LoanResponse toResponse(Loan loan) {
         return new LoanResponse(
                 loan.getId(),

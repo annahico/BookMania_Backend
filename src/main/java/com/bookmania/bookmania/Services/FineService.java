@@ -69,6 +69,26 @@ public class FineService {
                 .toList();
     }
 
+    public List<FineResponse> getAllFines() {
+        return fineRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public void delete(Long id) {
+        Fine fine = fineRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Multa no encontrada"));
+
+        // Si la penalización sigue activa, limpiar el penaltyUntil del usuario
+        User user = fine.getUser();
+        if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
+            user.setPenaltyUntil(null);
+            userRepository.save(user);
+        }
+
+        fineRepository.deleteById(id);
+    }
+
     private FineResponse toResponse(Fine fine) {
         long daysRemaining = 0;
         if (fine.getPenaltyUntil().isAfter(LocalDate.now())) {
@@ -79,6 +99,7 @@ public class FineService {
                 fine.getId(),
                 fine.getLoan().getId(),
                 fine.getLoan().getBook().getTitle(),
+                fine.getUser().getName(),
                 fine.getDaysOverdue(),
                 fine.getPenaltyDays(),
                 fine.getPenaltyUntil(),

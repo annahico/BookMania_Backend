@@ -12,9 +12,10 @@ public class FineResponse {
     private Long id;
     private Long loanId;
     private String bookTitle;
+    private String userName;
     private Integer daysOverdue;
     private Integer penaltyDays;
     private LocalDate penaltyUntil;
-    private Long penaltyDaysRemaining; 
+    private Long penaltyDaysRemaining;
     private LocalDateTime createdAt;
 }
