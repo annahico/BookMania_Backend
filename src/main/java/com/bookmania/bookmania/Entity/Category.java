@@ -3,6 +3,9 @@ package com.bookmania.bookmania.Entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "categories")
 @Getter
@@ -10,7 +13,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class Category {
 
     @Id
@@ -23,4 +25,6 @@ public class Category {
     @Column
     private String description;
 
+    @ManyToMany(mappedBy = "categories")
+    private Set<Book> books = new HashSet<>();
 }
