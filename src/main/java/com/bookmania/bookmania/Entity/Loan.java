@@ -36,7 +36,6 @@ public class Loan {
     @Column
     private LocalDate returnDate;
 
-    // 0, 1, 2 o 3 — máximo 3 prórrogas de 10 días cada una
     @Column(nullable = false)
     private Integer extensionsUsed = 0;
 

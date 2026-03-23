@@ -4,13 +4,22 @@ import com.bookmania.bookmania.Dtos.BookRequest;
 import com.bookmania.bookmania.Dtos.BookResponse;
 import com.bookmania.bookmania.Entity.Book;
 import com.bookmania.bookmania.Entity.Category;
+import com.bookmania.bookmania.Exception.BusinessException;
+import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.BookRepository;
 import com.bookmania.bookmania.Repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,18 +35,30 @@ public class BookService {
                 .toList();
     }
 
+    public Page<BookResponse> getFiltered(String title, String author, Long categoryId,
+            int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("title").ascending());
+        return bookRepository.findWithFilters(title, author, categoryId, pageable)
+                .map(this::toResponse);
+    }
+
     public BookResponse getById(Long id) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Libro no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
         return toResponse(book);
     }
 
     public BookResponse create(BookRequest request) {
         if (bookRepository.existsByIsbn(request.getIsbn())) {
-            throw new RuntimeException("Ya existe un libro con ese ISBN");
+            throw new BusinessException("Ya existe un libro con ese ISBN");
         }
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+
+        Set<Category> categories = new HashSet<>(
+            categoryRepository.findAllById(request.getCategoryIds())
+        );
+        if (categories.isEmpty()) {
+            throw new ResourceNotFoundException("No se encontraron categorías válidas");
+        }
 
         Book book = new Book();
         book.setTitle(request.getTitle());
@@ -47,16 +68,21 @@ public class BookService {
         book.setCoverUrl(request.getCoverUrl());
         book.setTotalCopies(request.getTotalCopies());
         book.setAvailableCopies(request.getTotalCopies());
-        book.setCategory(category);
+        book.setCategories(categories);
 
         return toResponse(bookRepository.save(book));
     }
 
     public BookResponse update(Long id, BookRequest request) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Libro no encontrado"));
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
+
+        Set<Category> categories = new HashSet<>(
+            categoryRepository.findAllById(request.getCategoryIds())
+        );
+        if (categories.isEmpty()) {
+            throw new ResourceNotFoundException("No se encontraron categorías válidas");
+        }
 
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
@@ -64,19 +90,23 @@ public class BookService {
         book.setPublishYear(request.getPublishYear());
         book.setCoverUrl(request.getCoverUrl());
         book.setTotalCopies(request.getTotalCopies());
-        book.setCategory(category);
+        book.setCategories(categories);
 
         return toResponse(bookRepository.save(book));
     }
 
     public void delete(Long id) {
         if (!bookRepository.existsById(id)) {
-            throw new RuntimeException("Libro no encontrado");
+            throw new ResourceNotFoundException("Libro no encontrado");
         }
         bookRepository.deleteById(id);
     }
 
     private BookResponse toResponse(Book book) {
+        Set<String> categoryNames = book.getCategories().stream()
+                .map(Category::getName)
+                .collect(Collectors.toSet());
+
         return new BookResponse(
                 book.getId(),
                 book.getTitle(),
@@ -86,7 +116,7 @@ public class BookService {
                 book.getCoverUrl(),
                 book.getTotalCopies(),
                 book.getAvailableCopies(),
-                book.getCategory() != null ? book.getCategory().getName() : null
+                categoryNames
         );
     }
 }
