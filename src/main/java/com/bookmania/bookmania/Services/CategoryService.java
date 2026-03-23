@@ -2,18 +2,25 @@ package com.bookmania.bookmania.Services;
 
 import com.bookmania.bookmania.Dtos.CategoryRequest;
 import com.bookmania.bookmania.Dtos.CategoryResponse;
+import com.bookmania.bookmania.Entity.Book;
 import com.bookmania.bookmania.Entity.Category;
+import com.bookmania.bookmania.Exception.ResourceNotFoundException;
+import com.bookmania.bookmania.Repository.BookRepository;
 import com.bookmania.bookmania.Repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final BookRepository bookRepository;
 
     public List<CategoryResponse> getAll() {
         return categoryRepository.findAll().stream()
@@ -23,13 +30,13 @@ public class CategoryService {
 
     public CategoryResponse getById(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
         return new CategoryResponse(category.getId(), category.getName(), category.getDescription());
     }
 
     public CategoryResponse create(CategoryRequest request) {
         if (categoryRepository.existsByName(request.getName())) {
-            throw new RuntimeException("Category already exists");
+            throw new RuntimeException("Ya existe una categoría con ese nombre");
         }
         Category category = new Category();
         category.setName(request.getName());
@@ -40,7 +47,7 @@ public class CategoryService {
 
     public CategoryResponse update(Long id, CategoryRequest request) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
         category.setName(request.getName());
         category.setDescription(request.getDescription());
         Category saved = categoryRepository.save(category);
@@ -48,9 +55,15 @@ public class CategoryService {
     }
 
     public void delete(Long id) {
-        if (!categoryRepository.existsById(id)) {
-            throw new RuntimeException("Category not found");
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
+
+        // Limpiar relación desde el lado propietario (Book)
+        for (Book book : new HashSet<>(category.getBooks())) {
+            book.getCategories().remove(category);
+            bookRepository.save(book);
         }
-        categoryRepository.deleteById(id);
+
+        categoryRepository.delete(category);
     }
 }

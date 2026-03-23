@@ -26,7 +26,7 @@ public class BookController {
             @RequestParam(required = false) String author,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "25") int size) {
         return ResponseEntity.ok(bookService.getFiltered(title, author, categoryId, page, size));
     }
 
