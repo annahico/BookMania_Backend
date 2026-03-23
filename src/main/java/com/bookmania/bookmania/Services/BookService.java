@@ -38,7 +38,7 @@ public class BookService {
     public Page<BookResponse> getFiltered(String title, String author, Long categoryId,
             int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("title").ascending());
-        return bookRepository.findWithFilters(title, author, categoryId, pageable)
+        return bookRepository.findWithFilters(title, categoryId, pageable)
                 .map(this::toResponse);
     }
 
@@ -54,7 +54,7 @@ public class BookService {
         }
 
         Set<Category> categories = new HashSet<>(
-            categoryRepository.findAllById(request.getCategoryIds())
+                categoryRepository.findAllById(request.getCategoryIds())
         );
         if (categories.isEmpty()) {
             throw new ResourceNotFoundException("No se encontraron categorías válidas");
@@ -78,7 +78,7 @@ public class BookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
 
         Set<Category> categories = new HashSet<>(
-            categoryRepository.findAllById(request.getCategoryIds())
+                categoryRepository.findAllById(request.getCategoryIds())
         );
         if (categories.isEmpty()) {
             throw new ResourceNotFoundException("No se encontraron categorías válidas");

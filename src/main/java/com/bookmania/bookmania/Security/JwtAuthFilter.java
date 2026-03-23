@@ -52,8 +52,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Token inválido o expirado — dejar pasar sin autenticar
-            // Las rutas protegidas serán bloqueadas por Spring Security
         }
 
         filterChain.doFilter(request, response);
