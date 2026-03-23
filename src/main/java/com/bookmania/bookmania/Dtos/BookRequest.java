@@ -18,6 +18,7 @@ public class BookRequest {
     private String author;
     @NotBlank
     private String isbn;
+    private Integer pages;
     private Integer publishYear;
     private String coverUrl;
     @NotNull

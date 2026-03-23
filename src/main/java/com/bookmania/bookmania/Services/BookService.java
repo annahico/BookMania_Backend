@@ -64,6 +64,7 @@ public class BookService {
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
         book.setIsbn(request.getIsbn());
+        book.setPages(request.getPages());
         book.setPublishYear(request.getPublishYear());
         book.setCoverUrl(request.getCoverUrl());
         book.setTotalCopies(request.getTotalCopies());
@@ -87,6 +88,7 @@ public class BookService {
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
         book.setIsbn(request.getIsbn());
+        book.setPages(request.getPages());
         book.setPublishYear(request.getPublishYear());
         book.setCoverUrl(request.getCoverUrl());
         book.setTotalCopies(request.getTotalCopies());
@@ -112,6 +114,7 @@ public class BookService {
                 book.getTitle(),
                 book.getAuthor(),
                 book.getIsbn(),
+                book.getPages(),
                 book.getPublishYear(),
                 book.getCoverUrl(),
                 book.getTotalCopies(),

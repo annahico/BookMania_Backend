@@ -5,9 +5,6 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.JoinColumn;
 
 @Entity
 @Table(name = "books")
@@ -30,6 +27,9 @@ public class Book {
 
     @Column(unique = true)
     private String isbn;
+
+    @Column
+    private Integer pages;
 
     @Column
     private Integer publishYear;
