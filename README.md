@@ -156,18 +156,42 @@ The API will be available at `http://localhost:8080`
 
 ## Frontend Integration
 
-> The React frontend is currently under development and will be integrated soon.
+The React frontend is fully integrated with this backend.
 
-To connect the frontend to this backend, set the base API URL and include the JWT token in every authenticated request:
+**Repository:** https://github.com/annahico/BookMania_Frontend
 
-```javascript
-const API_BASE_URL = "http://localhost:8080";
-
-headers: {
-  "Authorization": `Bearer ${token}`,
-  "Content-Type": "application/json"
-}
+### Setup
+```bash
+git clone https://github.com/annahico/BookMania_Frontend.git
+cd BookMania_Frontend
+npm install
+echo "VITE_API_URL=http://localhost:8080" > .env
+npm run dev
 ```
+
+The app will be available at `http://localhost:5173`
+
+### How it connects
+
+The frontend uses Axios with a JWT interceptor that automatically attaches the token to every authenticated request:
+```javascript
+const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+});
+
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+```
+
+### Frontend Tech Stack
+- React + Vite
+- Tailwind CSS v3
+- React Router v6
+- Axios with JWT interceptors
+- Context API
 
 ---
 
@@ -338,18 +362,42 @@ La API estará disponible en `http://localhost:8080`
 
 ## Integración con el Frontend
 
-> El frontend en React está actualmente en desarrollo y se integrará próximamente.
+El frontend en React está completamente integrado con este backend.
 
-Para conectar el frontend a este backend, configura la URL base de la API e incluye el token JWT en cada petición autenticada:
+**Repositorio:** https://github.com/annahico/BookMania_Frontend
 
-```javascript
-const API_BASE_URL = "http://localhost:8080";
-
-headers: {
-  "Authorization": `Bearer ${token}`,
-  "Content-Type": "application/json"
-}
+### Instalación
+```bash
+git clone https://github.com/annahico/BookMania_Frontend.git
+cd BookMania_Frontend
+npm install
+echo "VITE_API_URL=http://localhost:8080" > .env
+npm run dev
 ```
+
+La app estará disponible en `http://localhost:5173`
+
+### Cómo se conecta
+
+El frontend usa Axios con un interceptor JWT que adjunta automáticamente el token en cada petición autenticada:
+```javascript
+const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+});
+
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+```
+
+### Stack del Frontend
+- React + Vite
+- Tailwind CSS v3
+- React Router v6
+- Axios con interceptores JWT
+- Context API
 
 ---
 

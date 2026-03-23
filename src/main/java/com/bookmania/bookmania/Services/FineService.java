@@ -79,7 +79,6 @@ public class FineService {
         Fine fine = fineRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Multa no encontrada"));
 
-        // Si la penalización sigue activa, limpiar el penaltyUntil del usuario
         User user = fine.getUser();
         if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
             user.setPenaltyUntil(null);
