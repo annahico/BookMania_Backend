@@ -12,6 +12,7 @@ public class BookResponse {
     private String title;
     private String author;
     private String isbn;
+    private Integer pages;
     private Integer publishYear;
     private String coverUrl;
     private Integer totalCopies;
