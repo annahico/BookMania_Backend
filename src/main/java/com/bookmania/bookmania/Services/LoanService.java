@@ -114,7 +114,11 @@ public class LoanService {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Préstamo no encontrado"));
 
-        if (!loan.getUser().getId().equals(user.getId())) {
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !loan.getUser().getId().equals(user.getId())) {
             throw new ForbiddenException("No tienes permiso para devolver este préstamo");
         }
 

@@ -47,15 +47,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
-                .requestMatchers("/api/loans/**").hasRole("ADMIN")
-                .requestMatchers("/api/fines/**").hasRole("ADMIN")
-                .requestMatchers("/api/reservations/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/books/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/books/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/books/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -72,9 +63,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-                // "http://localhost:5173", // NO BORRAR FINS QUE PUGUI FER EL DEPLOYMENT BÉ
-                // "http://localhost:3000"
-                "https://bookmaniabackend-production.up.railway.app" // QUAN FUNCIONE EL BACKEND EN RAILWAY, DESCOMENTAR Y COMENTAR ELS LOCALES
+                "http://localhost:5173", // NO BORRAR FINS QUE PUGUI FER EL DEPLOYMENT BÉ
+                "http://localhost:3000"
+        // "https://bookmaniabackend-production.up.railway.app" // QUAN FUNCIONI EL BACKEND EN RAILWAY, DESCOMENTAR Y COMENTAR ELS LOCALHOST
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -82,7 +73,7 @@ public class SecurityConfig {
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
+        source.registerCorsConfiguration("/**", config);    
         return source;
     }
 

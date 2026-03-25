@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -35,7 +34,7 @@ public class LoanController {
         return ResponseEntity.ok(loanService.extend(id));
     }
 
-    @PutMapping("/{id}/return")                          
+    @PutMapping("/{id}/return")
     public ResponseEntity<LoanResponse> returnBook(@PathVariable Long id) {
         return ResponseEntity.ok(loanService.returnBook(id));
     }
