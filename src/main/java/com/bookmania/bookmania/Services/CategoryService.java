@@ -58,7 +58,6 @@ public class CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
 
-        // Limpiar relación desde el lado propietario (Book)
         for (Book book : new HashSet<>(category.getBooks())) {
             book.getCategories().remove(category);
             bookRepository.save(book);

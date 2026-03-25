@@ -72,9 +72,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000"
-        // "https://bookmaniabackend-production.up.railway.app" QUAN FUNCIONE EL BACKEND EN RAILWAY, DESCOMENTAR Y COMENTAR LOS LOCALES
+                // "http://localhost:5173", // NO BORRAR FINS QUE PUGUI FER EL DEPLOYMENT BÉ
+                // "http://localhost:3000"
+                "https://bookmaniabackend-production.up.railway.app" // QUAN FUNCIONE EL BACKEND EN RAILWAY, DESCOMENTAR Y COMENTAR ELS LOCALES
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
