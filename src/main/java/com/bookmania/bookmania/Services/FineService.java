@@ -46,7 +46,6 @@ public class FineService {
 
         int penaltyDays = BASE_PENALTY_DAYS + (int) (daysOverdue * EXTRA_DAYS_PER_OVERDUE_DAY);
 
-        // Recarga el usuario fresco desde BD en vez de usar loan.getUser()
         User user = userRepository.findById(loan.getUser().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 

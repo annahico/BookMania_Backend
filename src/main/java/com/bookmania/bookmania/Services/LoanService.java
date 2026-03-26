@@ -35,12 +35,11 @@ public class LoanService {
    public LoanResponse create(LoanRequest request) {
     String email = SecurityContextHolder.getContext().getAuthentication().getName();
     
-    // Fuerza carga fresca desde BD
     User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
     if (user.getPenaltyUntil() != null && !LocalDate.now().isBefore(user.getPenaltyUntil().plusDays(1))) {
-        // Limpia penaltyUntil si ya expiró
+    
         user.setPenaltyUntil(null);
         userRepository.save(user);
     }
@@ -117,7 +116,6 @@ public void delete(Long id) {
     User user = fine.getUser();
     fineRepository.deleteById(id);
 
-    // Recalcula la penalización basándose en las multas restantes
     List<Fine> remainingFines = fineRepository.findByUserId(user.getId());
     LocalDate maxPenalty = remainingFines.stream()
             .map(Fine::getPenaltyUntil)
