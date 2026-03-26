@@ -40,10 +40,15 @@ public class LoanService {
             throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
         }
 
-        Book book = bookRepository.findById(request.getBookId())
-                .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
+        long activeLoans = loanRepository.countByUserIdAndStatus(user.getId(), LoanStatus.ISSUED);
+        if (activeLoans >= 7) {
+            throw new BusinessException("Has alcanzado el límite de 7 préstamos activos simultáneos");
+        }
 
-        if (book.getAvailableCopies() <= 0) {
+        Book book = bookRepository.findById(request.getBookId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
+            
+            if (book.getAvailableCopies() <= 0) {
             throw new BusinessException("No hay copias disponibles. Puedes hacer una reserva.");
         }
 

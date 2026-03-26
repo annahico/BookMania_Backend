@@ -7,8 +7,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface LoanRepository extends JpaRepository<Loan, Long> {
+
     List<Loan> findByUserId(Long userId);
+
     List<Loan> findByUserIdAndStatus(Long userId, LoanStatus status);
+
+    long countByUserIdAndStatus(Long userId, LoanStatus status);
+
     boolean existsByUserIdAndBookIdAndStatus(Long userId, Long bookId, LoanStatus status);
-    List<Loan> findByStatus(LoanStatus status); 
+
+    List<Loan> findByStatus(LoanStatus status);
 }
