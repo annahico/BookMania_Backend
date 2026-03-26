@@ -28,18 +28,28 @@ public class FineService {
     private final UserRepository userRepository;
 
     public void generateFine(Loan loan) {
+        System.out.println(">>> generateFine llamado para loan: " + loan.getId());
+        System.out.println(">>> dueDate: " + loan.getDueDate() + " | hoy: " + LocalDate.now());
+
         if (fineRepository.existsByLoanId(loan.getId())) {
+            System.out.println(">>> Ya existe multa para este loan, saliendo");
             return;
         }
 
         long daysOverdue = ChronoUnit.DAYS.between(loan.getDueDate(), LocalDate.now());
+        System.out.println(">>> daysOverdue: " + daysOverdue);
+
         if (daysOverdue <= 0) {
+            System.out.println(">>> daysOverdue <= 0, saliendo sin generar multa");
             return;
         }
 
         int penaltyDays = BASE_PENALTY_DAYS + (int) (daysOverdue * EXTRA_DAYS_PER_OVERDUE_DAY);
 
-        User user = loan.getUser();
+        // Recarga el usuario fresco desde BD en vez de usar loan.getUser()
+        User user = userRepository.findById(loan.getUser().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
         LocalDate baseDate = (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now()))
                 ? user.getPenaltyUntil()
                 : LocalDate.now();

@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -31,14 +32,22 @@ public class LoanService {
     private final FineService fineService;
     private final ReservationService reservationService;
 
-    public LoanResponse create(LoanRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+   public LoanResponse create(LoanRequest request) {
+    String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    
+    // Fuerza carga fresca desde BD
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-        if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
-            throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
-        }
+    if (user.getPenaltyUntil() != null && !LocalDate.now().isBefore(user.getPenaltyUntil().plusDays(1))) {
+        // Limpia penaltyUntil si ya expiró
+        user.setPenaltyUntil(null);
+        userRepository.save(user);
+    }
+
+    if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
+        throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
+    }
 
         long activeLoans = loanRepository.countByUserIdAndStatus(user.getId(), LoanStatus.ISSUED);
         if (activeLoans >= 7) {
@@ -100,6 +109,25 @@ public class LoanService {
         if (loan.getExtensionsUsed() >= 3) {
             throw new BusinessException("Has alcanzado el máximo de prórrogas permitidas (3)");
         }
+
+public void delete(Long id) {
+    Fine fine = fineRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Multa no encontrada"));
+
+    User user = fine.getUser();
+    fineRepository.deleteById(id);
+
+    // Recalcula la penalización basándose en las multas restantes
+    List<Fine> remainingFines = fineRepository.findByUserId(user.getId());
+    LocalDate maxPenalty = remainingFines.stream()
+            .map(Fine::getPenaltyUntil)
+            .filter(date -> date.isAfter(LocalDate.now()))
+            .max(LocalDate::compareTo)
+            .orElse(null);
+
+    user.setPenaltyUntil(maxPenalty);
+    userRepository.save(user);
+}
 
         if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
             throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());

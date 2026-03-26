@@ -1,21 +1,31 @@
-ALTER TABLE fines DROP COLUMN paid;
 
 -- ── CREAR MULTA MANUALMENTE ──────────────────────────────────────────────
-INSERT INTO fines (created_at, days_overdue, penalty_days, penalty_until, loan_id, user_id)
+-- 1. Mira el id del loan que quieres asociar a la multa
+SELECT id, due_date FROM loans WHERE user_id = (SELECT id FROM users WHERE email = 'multas@multas.com');
+
+-- 2. Inserta la multa (sustituye loan_id por el id del loan)
+INSERT INTO fines (loan_id, user_id, days_overdue, penalty_days, penalty_until, created_at)
 VALUES (
-    NOW(),
-    10,                          -- días de retraso
-    27,                          -- 7 + (10 × 2) = 27 días de penalización
-    '2026-03-26',                 -- fecha hasta la que está bloqueado
-    1,                           -- id del préstamo
-    1                            -- id del usuario
+    2,               --loan_id (ejemplo, sustituye por el id real)
+    (SELECT id FROM users WHERE email = 'multas@multas.com'),
+    10,
+    27,
+    '2026-04-10',   -- 7 días base + (10 días × 2) = 27 días de penalización
+    NOW()
 );
 
--- Actualizar penaltyUntil del usuario
+-- 3. Actualiza el penalty_until del usuario para que coincida
 UPDATE users 
-SET penalty_until = '2026-04-22'
-WHERE id = 9;
+SET penalty_until = '2026-04-10' 
+WHERE email = 'multas@multas.com';
 
+
+
+-- Elimina las multas de prueba
+DELETE FROM fines WHERE user_id = (SELECT id FROM users WHERE email = 'multas@multas.com');
+
+-- Resetea la penalización
+UPDATE users SET penalty_until = NULL WHERE email = 'multas@multas.com';
 
 -- ── MODIFICAR MULTA ──────────────────────────────────────────────────────
 UPDATE fines 
