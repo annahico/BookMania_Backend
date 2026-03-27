@@ -59,7 +59,6 @@ class ReservationServiceTest {
         lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
         lenient().when(authentication.getName()).thenReturn("user@test.com");
         SecurityContextHolder.setContext(securityContext);
-        
 
         user = User.builder()
                 .id(1L)
@@ -86,7 +85,6 @@ class ReservationServiceTest {
         request = new ReservationRequest();
         request.setBookId(10L);
     }
-    // ── create ──────────────────────────────────────────────────────────────
 
     @Test
     void create_success_returnsReservationResponse() {
@@ -171,7 +169,6 @@ class ReservationServiceTest {
         assertThatThrownBy(() -> reservationService.create(request))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
-    // ── cancel ──────────────────────────────────────────────────────────────
 
     @Test
     void cancel_success_setsStatusCancelled() {
@@ -219,7 +216,6 @@ class ReservationServiceTest {
         assertThatThrownBy(() -> reservationService.cancel(100L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
-    // ── getMyReservations ───────────────────────────────────────────────────
 
     @Test
     void getMyReservations_returnsUserReservations() {
@@ -241,7 +237,6 @@ class ReservationServiceTest {
 
         assertThat(result).isEmpty();
     }
-    // ── notifyNextInQueue ───────────────────────────────────────────────────
 
     @Test
     void notifyNextInQueue_withQueue_setsExpiryDate() {
@@ -250,9 +245,9 @@ class ReservationServiceTest {
         when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
 
         reservationService.notifyNextInQueue(10L);
-                 
-        verify(reservationRepository).save(argThat(r ->
-                r.getExpiryDate().equals(LocalDate.now().plusDays(3))
+
+        verify(reservationRepository).save(argThat(r
+                -> r.getExpiryDate().equals(LocalDate.now().plusDays(3))
         ));
     }
 
@@ -265,7 +260,6 @@ class ReservationServiceTest {
 
         verify(reservationRepository, never()).save(any());
     }
-    // ── getAllReservations ──────────────────────────────────────────────────
 
     @Test
     void getAllReservations_returnsAllReservations() {
@@ -274,7 +268,7 @@ class ReservationServiceTest {
         List<ReservationResponse> result = reservationService.getAllReservations();
 
         assertThat(result).hasSize(1);
- 
-       assertThat(result.get(0).getUserName()).isEqualTo("Test User");
+
+        assertThat(result.get(0).getUserName()).isEqualTo("Test User");
     }
 }
