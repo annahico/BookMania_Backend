@@ -21,8 +21,8 @@ import java.util.List;
 @Transactional
 public class FineService {
 
-    private static final int BASE_PENALTY_DAYS = 7; //modificar segons política de la biblioteca
-    private static final int EXTRA_DAYS_PER_OVERDUE_DAY = 2;
+    private static final int BASE_PENALTY_DAYS = 30; //modificar segons política de la biblioteca
+    private static final int EXTRA_DAYS_PER_OVERDUE_DAY = 1; //modificar segons política de la biblioteca
 
     private final FineRepository fineRepository;
     private final UserRepository userRepository;
