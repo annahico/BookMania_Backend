@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -32,21 +31,20 @@ public class LoanService {
     private final FineService fineService;
     private final ReservationService reservationService;
 
-   public LoanResponse create(LoanRequest request) {
-    String email = SecurityContextHolder.getContext().getAuthentication().getName();
-    
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+    public LoanResponse create(LoanRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    if (user.getPenaltyUntil() != null && !LocalDate.now().isBefore(user.getPenaltyUntil().plusDays(1))) {
-    
-        user.setPenaltyUntil(null);
-        userRepository.save(user);
-    }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-    if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
-        throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
-    }
+        if (user.getPenaltyUntil() != null && !LocalDate.now().isBefore(user.getPenaltyUntil().plusDays(1))) {
+            user.setPenaltyUntil(null);
+            userRepository.save(user);
+        }
+
+        if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
+            throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
+        }
 
         long activeLoans = loanRepository.countByUserIdAndStatus(user.getId(), LoanStatus.ISSUED);
         if (activeLoans >= 7) {
@@ -54,9 +52,9 @@ public class LoanService {
         }
 
         Book book = bookRepository.findById(request.getBookId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
-            
-            if (book.getAvailableCopies() <= 0) {
+                .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
+
+        if (book.getAvailableCopies() <= 0) {
             throw new BusinessException("No hay copias disponibles. Puedes hacer una reserva.");
         }
 
@@ -93,7 +91,11 @@ public class LoanService {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Préstamo no encontrado"));
 
-        if (!loan.getUser().getId().equals(user.getId())) {
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !loan.getUser().getId().equals(user.getId())) {
             throw new ForbiddenException("No tienes permiso para prorrogar este préstamo");
         }
 
@@ -109,25 +111,7 @@ public class LoanService {
             throw new BusinessException("Has alcanzado el máximo de prórrogas permitidas (3)");
         }
 
-public void delete(Long id) {
-    Fine fine = fineRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Multa no encontrada"));
-
-    User user = fine.getUser();
-    fineRepository.deleteById(id);
-
-    List<Fine> remainingFines = fineRepository.findByUserId(user.getId());
-    LocalDate maxPenalty = remainingFines.stream()
-            .map(Fine::getPenaltyUntil)
-            .filter(date -> date.isAfter(LocalDate.now()))
-            .max(LocalDate::compareTo)
-            .orElse(null);
-
-    user.setPenaltyUntil(maxPenalty);
-    userRepository.save(user);
-}
-
-        if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
+        if (!isAdmin && user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
             throw new BusinessException("Tienes una penalización activa hasta " + user.getPenaltyUntil());
         }
 

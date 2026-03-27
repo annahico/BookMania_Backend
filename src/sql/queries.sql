@@ -23,9 +23,10 @@ WHERE email = 'multas@multas.com';
 
 -- Elimina las multas de prueba
 DELETE FROM fines WHERE user_id = (SELECT id FROM users WHERE email = 'multas@multas.com');
-
 -- Resetea la penalización
 UPDATE users SET penalty_until = NULL WHERE email = 'multas@multas.com';
+
+
 
 -- ── MODIFICAR MULTA ──────────────────────────────────────────────────────
 UPDATE fines 
