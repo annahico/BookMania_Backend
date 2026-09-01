@@ -31,7 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
-application.properties
+
+# Local tooling — never publish these, but harmless to deploy without them
+.claude/
+.github/
+
+# application.properties is now committed (env-var driven, no secrets).
+# Use application-local.properties (spring.profiles.active=local) or a real
+# .env for any local secret overrides — both stay out of git.
 application-local.properties
 
 .env

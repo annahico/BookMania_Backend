@@ -1,0 +1,14 @@
+target/
+.git/
+.gitattributes
+.idea/
+.vscode/
+*.iml
+.env
+application-local.properties
+HELP.md
+README.md
+LICENSE
+.mvn/
+mvnw
+mvnw.cmd

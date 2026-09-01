@@ -2,6 +2,7 @@ package com.bookmania.bookmania.Configuration;
 
 import com.bookmania.bookmania.Security.JwtAuthFilter;
 import com.bookmania.bookmania.Security.UserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -32,6 +33,9 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
 
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     public SecurityConfig(@Lazy JwtAuthFilter jwtAuthFilter,
             @Lazy UserDetailsServiceImpl userDetailsService) {
         this.jwtAuthFilter = jwtAuthFilter;
@@ -47,6 +51,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll() // Railway's deploy healthcheck hits this
                 .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -62,11 +67,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173", // NO BORRAR FINS QUE PUGUI FER EL DEPLOYMENT BÉ
-                "http://localhost:3000"
-        // "https://bookmaniabackend-production.up.railway.app" // QUAN FUNCIONI EL BACKEND EN RAILWAY, DESCOMENTAR Y COMENTAR ELS LOCALHOST
-        ));
+        // Driven by app.cors.allowed-origins (CORS_ALLOWED_ORIGINS env var), a
+        // comma-separated list. Defaults to the local dev origins; set it to the
+        // deployed frontend URL in Railway's Variables tab.
+        config.setAllowedOrigins(allowedOrigins);
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

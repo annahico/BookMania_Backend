@@ -135,14 +135,11 @@ cd BookMania_Backend
 CREATE DATABASE bookmania_db;
 ```
 
-3. Configure your environment variables or edit `application.properties`
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/bookmania_db
-spring.datasource.username=postgres
-spring.datasource.password=your_password
-jwt.secretKey=your_secret_key
-```
+3. `application.properties` reads everything from environment variables with local-friendly
+   defaults (see the table below), so it works out of the box against a local Postgres on
+   `localhost:5432` with user `postgres` / password `postgres`. To use different values,
+   export the env vars before running, or drop a git-ignored `application-local.properties`
+   next to it and run with `--spring.profiles.active=local`.
 
 4. Run the application
 
@@ -151,6 +148,33 @@ mvn spring-boot:run
 ```
 
 The API will be available at `http://localhost:8080`
+
+---
+
+## Deploying to Railway
+
+The backend ships with a `Dockerfile` and `railway.json`, so Railway builds and runs it as a
+container — no extra buildpack configuration needed.
+
+1. Push this repo to GitHub and create a new Railway project from it (or run `railway up` from
+   the CLI).
+2. Add a **PostgreSQL** plugin to the project.
+3. In the backend service's **Variables** tab, set:
+
+   | Variable | Value |
+   |---|---|
+   | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` |
+   | `SPRING_DATASOURCE_USERNAME` | `${{Postgres.PGUSER}}` |
+   | `SPRING_DATASOURCE_PASSWORD` | `${{Postgres.PGPASSWORD}}` |
+   | `JWT_SECRET_KEY` | a fresh, private Base64 secret (e.g. `openssl rand -base64 48`) — **do not reuse the dev default in `application.properties`** |
+   | `CORS_ALLOWED_ORIGINS` | your deployed frontend URL, e.g. `https://bookmania-frontend.up.railway.app` |
+
+   (`${{Postgres.PGHOST}}` etc. are Railway variable references to the Postgres plugin — pick
+   them from the autocomplete when adding a new variable.) Railway sets `PORT` automatically;
+   the app already listens on it via `server.port=${PORT:8080}`.
+4. Deploy. Railway builds the `Dockerfile` and polls `/actuator/health` (configured in
+   `railway.json`) to know when the container is ready.
+5. Once it's up, update the frontend's `VITE_API_URL` to the Railway backend URL.
 
 ---
 
@@ -341,14 +365,11 @@ cd BookMania_Backend
 CREATE DATABASE bookmania_db;
 ```
 
-3. Configura las variables de entorno o edita `application.properties`
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/bookmania_db
-spring.datasource.username=postgres
-spring.datasource.password=tu_password
-jwt.secretKey=tu_secret_key
-```
+3. `application.properties` lee todo desde variables de entorno con valores por defecto
+   pensados para desarrollo local (ver tabla más abajo), así que funciona tal cual contra un
+   Postgres local en `localhost:5432` con usuario `postgres` / contraseña `postgres`. Para usar
+   otros valores, exporta las variables antes de arrancar, o crea un `application-local.properties`
+   (ignorado por git) y arranca con `--spring.profiles.active=local`.
 
 4. Arranca la aplicación
 
@@ -357,6 +378,33 @@ mvn spring-boot:run
 ```
 
 La API estará disponible en `http://localhost:8080`
+
+---
+
+## Despliegue en Railway
+
+El backend incluye un `Dockerfile` y un `railway.json`, así que Railway lo construye y ejecuta
+como contenedor sin configuración adicional de buildpack.
+
+1. Sube este repo a GitHub y crea un proyecto nuevo en Railway a partir de él (o usa
+   `railway up` desde la CLI).
+2. Añade un plugin de **PostgreSQL** al proyecto.
+3. En la pestaña **Variables** del servicio del backend, configura:
+
+   | Variable | Valor |
+   |---|---|
+   | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` |
+   | `SPRING_DATASOURCE_USERNAME` | `${{Postgres.PGUSER}}` |
+   | `SPRING_DATASOURCE_PASSWORD` | `${{Postgres.PGPASSWORD}}` |
+   | `JWT_SECRET_KEY` | un secreto Base64 nuevo y privado (p. ej. `openssl rand -base64 48`) — **no reutilices el valor por defecto de desarrollo de `application.properties`** |
+   | `CORS_ALLOWED_ORIGINS` | la URL del frontend desplegado, p. ej. `https://bookmania-frontend.up.railway.app` |
+
+   (`${{Postgres.PGHOST}}`, etc. son referencias a variables del plugin de Postgres —
+   aparecen en el autocompletado al crear una variable nueva.) Railway define `PORT`
+   automáticamente; la app ya escucha en ese puerto vía `server.port=${PORT:8080}`.
+4. Despliega. Railway construye el `Dockerfile` y consulta `/actuator/health` (configurado en
+   `railway.json`) para saber cuándo el contenedor está listo.
+5. Una vez arriba, actualiza `VITE_API_URL` en el frontend con la URL del backend en Railway.
 
 ---
 
