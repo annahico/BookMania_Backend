@@ -26,5 +26,6 @@ public class Category {
     private String description;
 
     @ManyToMany(mappedBy = "categories")
+    @Builder.Default
     private Set<Book> books = new HashSet<>();
 }

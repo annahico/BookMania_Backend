@@ -37,6 +37,7 @@ public class User {
     private LocalDate memberSince;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean active = true;
 
     @Column
