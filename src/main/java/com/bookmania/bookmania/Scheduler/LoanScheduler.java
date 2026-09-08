@@ -21,8 +21,7 @@ public class LoanScheduler {
     private final LoanRepository loanRepository;
     private final FineService fineService;
 
-    // @Scheduled(cron = "0 5 0 * * *") // Ejecutar diariamente a las 00:05
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 5 0 * * *") // Ejecutar diariamente a las 00:05
     @Transactional
     public void markOverdueLoans() {
         List<Loan> activeLoans = loanRepository.findByStatus(LoanStatus.ISSUED);

@@ -7,8 +7,8 @@ import com.bookmania.bookmania.Entity.User;
 import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.FineRepository;
 import com.bookmania.bookmania.Repository.UserRepository;
+import com.bookmania.bookmania.Security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +26,7 @@ public class FineService {
 
     private final FineRepository fineRepository;
     private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
     public void generateFine(Loan loan) {
         if (fineRepository.existsByLoanId(loan.getId())) {
@@ -35,7 +36,6 @@ public class FineService {
         long daysOverdue = ChronoUnit.DAYS.between(loan.getDueDate(), LocalDate.now());
 
         if (daysOverdue <= 0) {
-            System.out.println(">>> daysOverdue <= 0, saliendo sin generar multa");
             return;
         }
 
@@ -64,9 +64,7 @@ public class FineService {
     }
 
     public List<FineResponse> getMyFines() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        User user = currentUserService.getCurrentUser();
 
         return fineRepository.findByUserId(user.getId()).stream()
                 .map(this::toResponse)

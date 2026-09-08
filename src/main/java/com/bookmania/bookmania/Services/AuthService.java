@@ -5,6 +5,8 @@ import com.bookmania.bookmania.Dtos.AuthResponse;
 import com.bookmania.bookmania.Dtos.RegisterRequest;
 import com.bookmania.bookmania.Entity.User;
 import com.bookmania.bookmania.Enums.Role;
+import com.bookmania.bookmania.Exception.BusinessException;
+import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.UserRepository;
 import com.bookmania.bookmania.Security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +30,7 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("El email ya está registrado");
+            throw new BusinessException("El email ya está registrado");
         }
 
         User user = User.builder()
@@ -65,7 +67,7 @@ public class AuthService {
         String token = jwtUtil.generateToken(userDetails);
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         return AuthResponse.builder()
                 .token(token)

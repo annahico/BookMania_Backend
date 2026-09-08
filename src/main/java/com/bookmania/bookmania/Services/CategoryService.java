@@ -4,6 +4,7 @@ import com.bookmania.bookmania.Dtos.CategoryRequest;
 import com.bookmania.bookmania.Dtos.CategoryResponse;
 import com.bookmania.bookmania.Entity.Book;
 import com.bookmania.bookmania.Entity.Category;
+import com.bookmania.bookmania.Exception.BusinessException;
 import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.BookRepository;
 import com.bookmania.bookmania.Repository.CategoryRepository;
@@ -36,7 +37,7 @@ public class CategoryService {
 
     public CategoryResponse create(CategoryRequest request) {
         if (categoryRepository.existsByName(request.getName())) {
-            throw new RuntimeException("Ya existe una categoría con ese nombre");
+            throw new BusinessException("Ya existe una categoría con ese nombre");
         }
         Category category = new Category();
         category.setName(request.getName());

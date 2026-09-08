@@ -11,7 +11,7 @@ import com.bookmania.bookmania.Exception.ForbiddenException;
 import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.BookRepository;
 import com.bookmania.bookmania.Repository.ReservationRepository;
-import com.bookmania.bookmania.Repository.UserRepository;
+import com.bookmania.bookmania.Security.CurrentUserService;
 import com.bookmania.bookmania.Services.ReservationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,9 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -40,11 +37,7 @@ class ReservationServiceTest {
     @Mock
     private BookRepository bookRepository;
     @Mock
-    private UserRepository userRepository;
-    @Mock
-    private Authentication authentication;
-    @Mock
-    private SecurityContext securityContext;
+    private CurrentUserService currentUserService;
 
     @InjectMocks
     private ReservationService reservationService;
@@ -56,16 +49,14 @@ class ReservationServiceTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
-        lenient().when(authentication.getName()).thenReturn("user@test.com");
-        SecurityContextHolder.setContext(securityContext);
-
         user = User.builder()
                 .id(1L)
                 .name("Test User")
                 .email("user@test.com")
                 .penaltyUntil(null)
                 .build();
+
+        lenient().when(currentUserService.getCurrentUser()).thenReturn(user);
 
         book = Book.builder()
                 .id(10L)
@@ -88,8 +79,7 @@ class ReservationServiceTest {
 
     @Test
     void create_success_returnsReservationResponse() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
-        when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
+        when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
         when(reservationRepository.existsByUserIdAndBookIdAndStatus(1L, 10L, ReservationStatus.PENDING))
                 .thenReturn(false);
         when(reservationRepository.countByBookIdAndStatus(10L, ReservationStatus.PENDING))
@@ -108,8 +98,6 @@ class ReservationServiceTest {
     void create_userWithActivePenalty_throwsBusinessException() {
         user.setPenaltyUntil(LocalDate.now().plusDays(5));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
-
         assertThatThrownBy(() -> reservationService.create(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("penalización activa");
@@ -119,8 +107,7 @@ class ReservationServiceTest {
     void create_bookAvailable_throwsBusinessException() {
         book.setAvailableCopies(2);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
-        when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
+        when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
 
         assertThatThrownBy(() -> reservationService.create(request))
                 .isInstanceOf(BusinessException.class)
@@ -129,8 +116,7 @@ class ReservationServiceTest {
 
     @Test
     void create_duplicateReservation_throwsBusinessException() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
-        when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
+        when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
         when(reservationRepository.existsByUserIdAndBookIdAndStatus(1L, 10L, ReservationStatus.PENDING))
                 .thenReturn(true);
 
@@ -141,8 +127,7 @@ class ReservationServiceTest {
 
     @Test
     void create_queueFull_throwsBusinessException() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
-        when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
+        when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(book));
         when(reservationRepository.existsByUserIdAndBookIdAndStatus(1L, 10L, ReservationStatus.PENDING))
                 .thenReturn(false);
         when(reservationRepository.countByBookIdAndStatus(10L, ReservationStatus.PENDING))
@@ -154,17 +139,8 @@ class ReservationServiceTest {
     }
 
     @Test
-    void create_userNotFound_throwsResourceNotFoundException() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> reservationService.create(request))
-                .isInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
     void create_bookNotFound_throwsResourceNotFoundException() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
-        when(bookRepository.findById(10L)).thenReturn(Optional.empty());
+        when(bookRepository.findByIdForUpdate(10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reservationService.create(request))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -172,7 +148,6 @@ class ReservationServiceTest {
 
     @Test
     void cancel_success_setsStatusCancelled() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
         when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
         when(reservationRepository.findByBookIdAndStatusOrderByQueuePositionAsc(10L, ReservationStatus.PENDING))
@@ -189,7 +164,6 @@ class ReservationServiceTest {
         User otherUser = User.builder().id(99L).email("other@test.com").build();
         reservation.setUser(otherUser);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
 
         assertThatThrownBy(() -> reservationService.cancel(100L))
@@ -200,7 +174,6 @@ class ReservationServiceTest {
     void cancel_nonPendingReservation_throwsBusinessException() {
         reservation.setStatus(ReservationStatus.FULFILLED);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
 
         assertThatThrownBy(() -> reservationService.cancel(100L))
@@ -210,7 +183,6 @@ class ReservationServiceTest {
 
     @Test
     void cancel_reservationNotFound_throwsResourceNotFoundException() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(reservationRepository.findById(100L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reservationService.cancel(100L))
@@ -219,7 +191,6 @@ class ReservationServiceTest {
 
     @Test
     void getMyReservations_returnsUserReservations() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(reservationRepository.findByUserId(1L)).thenReturn(List.of(reservation));
 
         List<ReservationResponse> result = reservationService.getMyReservations();
@@ -230,7 +201,6 @@ class ReservationServiceTest {
 
     @Test
     void getMyReservations_noReservations_returnsEmptyList() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(reservationRepository.findByUserId(1L)).thenReturn(List.of());
 
         List<ReservationResponse> result = reservationService.getMyReservations();
