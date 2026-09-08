@@ -65,6 +65,11 @@ public class GlobalExceptionHandler {
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("error", "Validation failed");
         body.put("messages", errors);
+        // Every frontend catch block reads err.response.data.message (singular) —
+        // without this, the one place with genuinely specific, user-facing text
+        // ("Email no válido", "El nombre es obligatorio"...) silently fell back
+        // to each form's generic "Error al ..." instead of ever being shown.
+        body.put("message", String.join(" ", errors.values()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
