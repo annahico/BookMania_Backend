@@ -11,9 +11,8 @@ import com.bookmania.bookmania.Exception.ForbiddenException;
 import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.BookRepository;
 import com.bookmania.bookmania.Repository.ReservationRepository;
-import com.bookmania.bookmania.Repository.UserRepository;
+import com.bookmania.bookmania.Security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,12 +29,10 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final BookRepository bookRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
     public ReservationResponse create(ReservationRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        User user = currentUserService.getCurrentUser();
 
         if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
             throw new BusinessException(
@@ -43,7 +40,11 @@ public class ReservationService {
             );
         }
 
-        Book book = bookRepository.findById(request.getBookId())
+        // Locked for the rest of the transaction: without it, two concurrent
+        // requests for the last queue slot on the same book could both read
+        // queueSize < MAX_QUEUE_SIZE before either commits, overfilling the
+        // queue (see BookRepository.findByIdForUpdate).
+        Book book = bookRepository.findByIdForUpdate(request.getBookId())
                 .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
 
         if (book.getAvailableCopies() > 0) {
@@ -73,9 +74,7 @@ public class ReservationService {
     }
 
     public ReservationResponse cancel(Long reservationId) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        User user = currentUserService.getCurrentUser();
 
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada"));
@@ -97,10 +96,7 @@ public class ReservationService {
     }
 
     public List<ReservationResponse> getMyReservations() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-
+        User user = currentUserService.getCurrentUser();
         return reservationRepository.findByUserId(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();

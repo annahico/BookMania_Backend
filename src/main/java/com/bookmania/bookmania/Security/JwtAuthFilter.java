@@ -58,15 +58,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
             }
         } catch (ExpiredJwtException e) {
-            logger.error("JWT authentication failed: {}", e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
-            return;
+            // Routine, expected condition (tokens expire on every user
+            // eventually) — not worth an ERROR-level log line per occurrence.
+            logger.debug("Expired JWT on {}: {}", request.getRequestURI(), e.getMessage());
+            SecurityContextHolder.clearContext();
         } catch (Exception e) {
-            logger.error("JWT authentication failed: {}", e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
-            return;
+            logger.warn("Invalid JWT on {}: {}", request.getRequestURI(), e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
+        // A bad/expired token just means "not authenticated" — it must not
+        // short-circuit the request. Returning 401 here unconditionally used
+        // to block PUBLIC endpoints too (GET /api/books, /api/categories,
+        // /api/auth/**): any client that still had a stale token attached
+        // (the frontend always sends it when present, regardless of the
+        // endpoint) got locked out of the catalog. Let the request continue
+        // unauthenticated and leave the actual authorization decision to
+        // SecurityConfig's per-endpoint rules.
         filterChain.doFilter(request, response);
     }
 }

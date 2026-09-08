@@ -20,6 +20,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .map(user -> new org.springframework.security.core.userdetails.User(
                         user.getEmail(),
                         user.getPassword(),
+                        user.isActive(),
+                        true, true, true,
                         List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                 ))
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + email));

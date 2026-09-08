@@ -11,9 +11,8 @@ import com.bookmania.bookmania.Exception.ForbiddenException;
 import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.BookRepository;
 import com.bookmania.bookmania.Repository.LoanRepository;
-import com.bookmania.bookmania.Repository.UserRepository;
+import com.bookmania.bookmania.Security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,19 +26,15 @@ public class LoanService {
 
     private final LoanRepository loanRepository;
     private final BookRepository bookRepository;
-    private final UserRepository userRepository;
     private final FineService fineService;
     private final ReservationService reservationService;
+    private final CurrentUserService currentUserService;
 
     public LoanResponse create(LoanRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        User user = currentUserService.getCurrentUser();
 
         if (user.getPenaltyUntil() != null && !LocalDate.now().isBefore(user.getPenaltyUntil().plusDays(1))) {
             user.setPenaltyUntil(null);
-            userRepository.save(user);
         }
 
         if (user.getPenaltyUntil() != null && user.getPenaltyUntil().isAfter(LocalDate.now())) {
@@ -51,7 +46,10 @@ public class LoanService {
             throw new BusinessException("Has alcanzado el límite de 7 préstamos activos simultáneos");
         }
 
-        Book book = bookRepository.findById(request.getBookId())
+        // Locked for the rest of the transaction: two concurrent requests
+        // for the same book's last copy must not both pass the availability
+        // check below (see BookRepository.findByIdForUpdate).
+        Book book = bookRepository.findByIdForUpdate(request.getBookId())
                 .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado"));
 
         if (book.getAvailableCopies() <= 0) {
@@ -69,31 +67,23 @@ public class LoanService {
         loan.setBook(book);
 
         book.setAvailableCopies(book.getAvailableCopies() - 1);
-        bookRepository.save(book);
 
         return toResponse(loanRepository.save(loan));
     }
 
     public List<LoanResponse> getMyLoans() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        User user = currentUserService.getCurrentUser();
         return loanRepository.findByUserId(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     public LoanResponse extend(Long loanId) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        User user = currentUserService.getCurrentUser();
+        boolean isAdmin = currentUserService.isCurrentUserAdmin();
 
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Préstamo no encontrado"));
-
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
-                .getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin && !loan.getUser().getId().equals(user.getId())) {
             throw new ForbiddenException("No tienes permiso para prorrogar este préstamo");
@@ -122,16 +112,11 @@ public class LoanService {
     }
 
     public LoanResponse returnBook(Long loanId) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        User user = currentUserService.getCurrentUser();
+        boolean isAdmin = currentUserService.isCurrentUserAdmin();
 
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Préstamo no encontrado"));
-
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
-                .getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin && !loan.getUser().getId().equals(user.getId())) {
             throw new ForbiddenException("No tienes permiso para devolver este préstamo");
@@ -157,16 +142,6 @@ public class LoanService {
         reservationService.notifyNextInQueue(book.getId());
 
         return toResponse(loanRepository.save(loan));
-    }
-
-    public void markOverdueLoans() {
-        List<Loan> active = loanRepository.findByStatus(LoanStatus.ISSUED);
-        for (Loan loan : active) {
-            if (LocalDate.now().isAfter(loan.getDueDate())) {
-                loan.setStatus(LoanStatus.OVERDUE);
-                loanRepository.save(loan);
-            }
-        }
     }
 
     public List<LoanResponse> getAllLoans() {

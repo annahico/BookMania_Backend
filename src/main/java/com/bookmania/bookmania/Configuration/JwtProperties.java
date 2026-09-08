@@ -13,11 +13,4 @@ public class JwtProperties {
 
     private String secretKey;
     private long expiration;
-    private RefreshToken refreshToken = new RefreshToken();
-
-    @Getter
-    @Setter
-    public static class RefreshToken {
-        private long expiration;
-    }
 }
