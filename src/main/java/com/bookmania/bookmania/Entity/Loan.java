@@ -37,6 +37,7 @@ public class Loan {
     private LocalDate returnDate;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer extensionsUsed = 0;
 
     @Enumerated(EnumType.STRING)
