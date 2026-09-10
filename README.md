@@ -55,6 +55,7 @@ BookMania is a RESTful API for managing a digital library. It handles books, use
 |--------|----------|--------|-------------|
 | POST | `/api/auth/register` | Public | Register a new user |
 | POST | `/api/auth/login` | Public | Login — returns JWT token |
+| PUT | `/api/users/me/password` | Authenticated | Change the current user's password |
 
 ### Books
 | Method | Endpoint | Access | Description |
@@ -285,6 +286,7 @@ BookMania es una API RESTful para la gestión de una biblioteca digital. Permite
 |--------|----------|--------|-------------|
 | POST | `/api/auth/register` | Público | Registro de usuario |
 | POST | `/api/auth/login` | Público | Login — devuelve JWT |
+| PUT | `/api/users/me/password` | Autenticado | Cambiar la contraseña del usuario actual |
 
 ### Libros
 | Método | Endpoint | Acceso | Descripción |

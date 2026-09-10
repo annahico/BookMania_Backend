@@ -2,12 +2,14 @@ package com.bookmania.bookmania;
 
 import com.bookmania.bookmania.Dtos.AuthRequest;
 import com.bookmania.bookmania.Dtos.AuthResponse;
+import com.bookmania.bookmania.Dtos.ChangePasswordRequest;
 import com.bookmania.bookmania.Dtos.RegisterRequest;
 import com.bookmania.bookmania.Entity.User;
 import com.bookmania.bookmania.Enums.Role;
 import com.bookmania.bookmania.Exception.BusinessException;
 import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.UserRepository;
+import com.bookmania.bookmania.Security.CurrentUserService;
 import com.bookmania.bookmania.Security.JwtUtil;
 import com.bookmania.bookmania.Services.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +45,8 @@ class AuthServiceTest {
     private UserDetailsService userDetailsService;
     @Mock
     private UserDetails userDetails;
+    @Mock
+    private CurrentUserService currentUserService;
 
     @InjectMocks
     private AuthService authService;
@@ -122,5 +126,53 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void changePassword_correctCurrentPassword_encodesAndSavesNewPassword() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("oldPlain");
+        request.setNewPassword("newPlain");
+
+        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(passwordEncoder.matches("oldPlain", "hashed")).thenReturn(true);
+        when(passwordEncoder.matches("newPlain", "hashed")).thenReturn(false);
+        when(passwordEncoder.encode("newPlain")).thenReturn("newHashed");
+
+        authService.changePassword(request);
+
+        verify(userRepository).save(argThat(u -> u.getPassword().equals("newHashed")));
+    }
+
+    @Test
+    void changePassword_wrongCurrentPassword_throwsBusinessException() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("wrong");
+        request.setNewPassword("newPlain");
+
+        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.changePassword(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("actual no es correcta");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void changePassword_newPasswordSameAsCurrent_throwsBusinessException() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("samePlain");
+        request.setNewPassword("samePlain");
+
+        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(passwordEncoder.matches("samePlain", "hashed")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.changePassword(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("distinta de la actual");
+
+        verify(userRepository, never()).save(any());
     }
 }
