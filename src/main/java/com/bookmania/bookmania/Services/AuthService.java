@@ -2,12 +2,14 @@ package com.bookmania.bookmania.Services;
 
 import com.bookmania.bookmania.Dtos.AuthRequest;
 import com.bookmania.bookmania.Dtos.AuthResponse;
+import com.bookmania.bookmania.Dtos.ChangePasswordRequest;
 import com.bookmania.bookmania.Dtos.RegisterRequest;
 import com.bookmania.bookmania.Entity.User;
 import com.bookmania.bookmania.Enums.Role;
 import com.bookmania.bookmania.Exception.BusinessException;
 import com.bookmania.bookmania.Exception.ResourceNotFoundException;
 import com.bookmania.bookmania.Repository.UserRepository;
+import com.bookmania.bookmania.Security.CurrentUserService;
 import com.bookmania.bookmania.Security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,6 +28,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
+    private final CurrentUserService currentUserService;
 
     public AuthResponse register(RegisterRequest request) {
 
@@ -75,5 +78,19 @@ public class AuthService {
                 .role(user.getRole().name())
                 .name(user.getName())
                 .build();
+    }
+
+    public void changePassword(ChangePasswordRequest request) {
+        User user = currentUserService.getCurrentUser();
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BusinessException("La contraseña actual no es correcta");
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new BusinessException("La nueva contraseña debe ser distinta de la actual");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 }
